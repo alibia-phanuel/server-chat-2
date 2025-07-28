@@ -1,0 +1,28 @@
+//Create users
+POST https://chat-boot-92e040193633.herokuapp.com/users
+Content-Type: application/json
+{
+    "name": "M Fikri 3",
+    "email" : "alibia.adin@gmail.com",
+    "password" : "12345567",
+    "confirmPassword": "12345567",
+    "role" : "admin"
+}
+###  
+//get All Users
+GET https://chat-boot-92e040193633.herokuapp.com/users
+###
+//Get Single User
+GET https://chat-boot-92e040193633.herokuapp.com/users/afc5fcd9-7cf8-4bb0-aceb-767fc2fb2754
+
+//UPDATE USER
+###
+PATCH  https://chat-boot-92e040193633.herokuapp.com/users/afc5fcd9-7cf8-4bb0-aceb-767fc2fb2754
+Content-Type: application/json
+{
+    "name": "M Fikri 3",
+    "email" : "alibia.adin@gmail.com",
+    "password" : "12345567",
+    "confirmPassword": "12345567",
+    "role" : "admin"
+}

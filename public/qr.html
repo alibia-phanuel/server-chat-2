@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestion WhatsApp Bot</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .container {
+      background: rgba(255, 255, 255, 0.97);
+      padding: 2rem;
+      border-radius: 15px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      max-width: 400px;
+      width: 95vw;
+      min-width: 280px;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 1.2rem;
+      font-size: 1.5rem;
+    }
+    .button {
+      background: #25D366;
+      color: white;
+      border: none;
+      padding: 0.8rem 1.5rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-block;
+      margin: 0.3rem 0.2rem;
+    }
+    .button:hover {
+      background: #128C7E;
+      transform: translateY(-2px);
+    }
+    .status {
+      margin-top: 1rem;
+      padding: 0.7rem;
+      border-radius: 8px;
+      background: #f8f9fa;
+      color: #666;
+      font-size: 1rem;
+    }
+    .qr {
+      margin: 1.2rem auto 0 auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+    .qr img {
+      max-width: 220px;
+      width: 100%;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      margin-bottom: 0.5rem;
+    }
+    @media (max-width: 500px) {
+      .container {
+        padding: 1rem;
+        max-width: 98vw;
+      }
+      h1 {
+        font-size: 1.1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Gestion WhatsApp Bot</h1>
+    <div id="actions">
+      <button class="button" id="initBtn">Initialiser WhatsApp</button>
+      <button class="button" id="logoutBtn" style="display:none;">Déconnecter</button>
+      <button class="button" id="regenBtn" style="display:none;">Régénérer QR</button>
+      <button class="button" id="showQrBtn" style="display:none;">Afficher un nouveau QR code</button>
+    </div>
+    <div class="status" id="status">Chargement de l'état...</div>
+    <div class="qr" id="qrContainer" style="display:none;"></div>
+  </div>
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  <script>
+    const statusDiv = document.getElementById('status');
+    const qrDiv = document.getElementById('qrContainer');
+    const initBtn = document.getElementById('initBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const regenBtn = document.getElementById('regenBtn');
+    const showQrBtn = document.getElementById('showQrBtn');
+
+    // Connexion à Socket.IO
+    const socket = io();
+    let lastQr = null;
+
+    socket.on('qrCode', (base64Qr) => {
+      lastQr = base64Qr;
+      qrDiv.innerHTML = '';
+      const img = document.createElement('img');
+      img.src = 'data:image/png;base64,' + base64Qr;
+      img.alt = 'QR Code WhatsApp';
+      img.onload = () => {
+        qrDiv.style.display = '';
+      };
+      img.onerror = () => {
+        qrDiv.style.display = 'none';
+      };
+      qrDiv.appendChild(img);
+      statusDiv.textContent = 'Scannez le QR code avec WhatsApp.';
+    });
+
+    socket.on('qrCodeExpired', () => {
+      qrDiv.innerHTML = '';
+      statusDiv.textContent = 'QR code expiré. Cliquez sur Afficher un nouveau QR code.';
+      showQrBtn.style.display = '';
+    });
+
+    socket.on('status', (status) => {
+      statusDiv.textContent = 'Statut de la session : ' + status;
+      // Ne plus cacher le QR code ici, seulement sur qrCodeExpired
+      showQrBtn.style.display = (status === 'autocloseCalled' || status === 'browserClose' || status === 'qrReadError' || status === 'notLogged') ? '' : 'none';
+    });
+
+    async function refreshStatus() {
+      // Ne pas toucher au statut affiché ici, il est géré par Socket.IO
+      qrDiv.style.display = 'none';
+      try {
+        const res = await fetch('/qr/wpp-status');
+        const data = await res.json();
+        if (data.success) {
+          if (data.status === 'non connecté' || data.status === 'qr') {
+            initBtn.style.display = '';
+            logoutBtn.style.display = 'none';
+            regenBtn.style.display = 'none';
+            // Le QR code sera affiché via Socket.IO
+          } else {
+            initBtn.style.display = 'none';
+            logoutBtn.style.display = '';
+            regenBtn.style.display = '';
+            qrDiv.style.display = 'none';
+          }
+        }
+      } catch (e) {
+        // Ne rien faire sur le statut
+      }
+    }
+
+    initBtn.onclick = async () => {
+      statusDiv.textContent = 'Initialisation en cours...';
+      try {
+        const res = await fetch('/qr/initialize', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          statusDiv.textContent = 'Initialisation démarrée. Scannez le QR code si besoin.';
+          setTimeout(refreshStatus, 1000);
+        } else {
+          statusDiv.textContent = data.message || 'Erreur lors de l\'initialisation';
+        }
+      } catch (e) {
+        statusDiv.textContent = 'Erreur lors de l\'initialisation';
+      }
+    };
+
+    logoutBtn.onclick = async () => {
+      statusDiv.textContent = 'Déconnexion en cours...';
+      try {
+        const res = await fetch('/qr/logout', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          statusDiv.textContent = 'Déconnecté.';
+          setTimeout(refreshStatus, 1000);
+        } else {
+          statusDiv.textContent = data.message || 'Erreur lors de la déconnexion';
+        }
+      } catch (e) {
+        statusDiv.textContent = 'Erreur lors de la déconnexion';
+      }
+    };
+
+    regenBtn.onclick = async () => {
+      statusDiv.textContent = 'Régénération du QR code...';
+      try {
+        const res = await fetch('/qr/regen-qr', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          statusDiv.textContent = 'QR code régénéré. Scannez-le pour vous connecter.';
+          setTimeout(refreshStatus, 1000);
+        } else {
+          statusDiv.textContent = data.message || 'Erreur lors de la régénération';
+        }
+      } catch (e) {
+        statusDiv.textContent = 'Erreur lors de la régénération';
+      }
+    };
+
+    showQrBtn.onclick = async () => {
+      statusDiv.textContent = 'Initialisation en cours...';
+      showQrBtn.style.display = 'none';
+      try {
+        const res = await fetch('/qr/initialize', { method: 'POST' });
+        const data = await res.json();
+        if (data.success) {
+          statusDiv.textContent = 'Initialisation démarrée. Scannez le QR code si besoin.';
+          setTimeout(refreshStatus, 1000);
+        } else {
+          statusDiv.textContent = data.message || 'Erreur lors de l\'initialisation';
+        }
+      } catch (e) {
+        statusDiv.textContent = 'Erreur lors de l\'initialisation';
+      }
+    };
+
+    // Rafraîchit l'état toutes les 5 secondes
+    setInterval(refreshStatus, 5000);
+    refreshStatus();
+  </script>
+</body>
+</html>

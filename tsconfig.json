@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "target": "ES6",
+    "module": "CommonJS",
+    "rootDir": ".",
+    "outDir": "./dist",
+    "moduleResolution": "node",
+    "strict": true,
+    "types": ["node"],
+    "typeRoots": ["./node_modules/@types", "./@types"],
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "allowJs": true
+  },
+  "include": ["src/**/*", "@types/**/*.d.ts", "wppconnectClient.ts"]
+}

@@ -1,0 +1,9 @@
+# .gitignore
+.env
+node_modules
+chat-bot-yoanh
+chat-boot
+uploads/
+/public/images/products/
+tokens
+.wppconnect

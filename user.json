@@ -1,0 +1,15 @@
+[
+  {
+    "version": "heroku releases:rollback v149 -a chat-boot",
+    "email": "yolo@gmail.com",
+    "password": "123456"
+  },
+  {
+    "email": "hamedsoumahorofbk@gmail.com",
+    "password": "Pythasoumah"
+  },
+  {
+    "email": "phanuel.alibia@gmail.com",
+    "password": "phanuel2001"
+  }
+]
