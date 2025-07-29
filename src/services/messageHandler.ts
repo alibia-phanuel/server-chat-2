@@ -4,6 +4,7 @@ import handleProducts from "./productHandler";
 import { handleIncomingProductMessage } from "../config/utils/handleIncomingProductMessage";
 import processFacebookLink from "./processFacebookLink";
 import { sendProductByFacebookId } from "./idPostFacebook";
+import getProductIdFromPages from "./getProductIdFromPages";
 
 export const handleIncomingMessage = async (
   clientInstance: Whatsapp | null,
@@ -44,7 +45,16 @@ export const handleIncomingMessage = async (
       console.log(resolvedReel?.formattedId, "📎 Lien Facebook end traitement");
       if (resolvedReel?.formattedId && resolvedReel?.longLink) {
         const idPostFacebook = resolvedReel?.formattedId;
-        await sendProductByFacebookId(clientInstance, senderId, idPostFacebook);
+        const findIdProduct = await getProductIdFromPages(idPostFacebook);
+        if (!findIdProduct) {
+          // Gérer le cas où aucun produit n'est trouvé
+          console.log("Produit introuvable");
+          return;
+        }
+        const { id, pageName } = findIdProduct;
+        console.log(pageName, "📎 Lien Facebook end traitement");
+        console.log(id, "📎 Lien Facebook end traitement");
+        await sendProductByFacebookId(clientInstance, senderId, id);
       }
       return;
     }
